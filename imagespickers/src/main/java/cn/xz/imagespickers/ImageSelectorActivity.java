@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.StrictMode;
 import android.provider.MediaStore;
 import android.view.View;
 import android.view.Window;
@@ -55,6 +56,9 @@ public class ImageSelectorActivity extends FragmentActivity implements ImageSele
 
         init();
 
+        StrictMode.VmPolicy.Builder builder =new StrictMode.VmPolicy.Builder();
+        StrictMode.setVmPolicy(builder.build());
+        builder.detectFileUriExposure();
     }
 
     private void init() {
