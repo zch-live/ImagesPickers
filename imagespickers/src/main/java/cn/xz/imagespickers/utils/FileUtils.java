@@ -15,7 +15,21 @@ public class FileUtils {
     private final static String PATTERN = "yyyyMMddHHmmss";
 
 
-    public static File createTmpFile(Context context, String filePath) {
+    public static String createTmpFile(Context context, String filePath) {
+        String timeStamp = new SimpleDateFormat(PATTERN, Locale.CHINA).format(new Date());
+
+        String baseFolder = Environment.getExternalStorageDirectory() + "/record/";
+        File f = new File(baseFolder);
+        if (!f.exists()) {
+            boolean b = f.mkdirs();
+            if (!b) {
+                baseFolder = context.getExternalFilesDir(null).getAbsolutePath() + "/";
+            }
+        }
+        return baseFolder;
+    }
+
+    public static File createTmpFile1(Context context, String filePath) {
 
         String timeStamp = new SimpleDateFormat(PATTERN, Locale.CHINA).format(new Date());
 

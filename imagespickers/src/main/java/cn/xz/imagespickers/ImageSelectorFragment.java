@@ -2,6 +2,8 @@ package cn.xz.imagespickers;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -9,12 +11,14 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.webkit.MimeTypeMap;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.GridView;
@@ -28,6 +32,10 @@ import androidx.loader.content.CursorLoader;
 import androidx.loader.content.Loader;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,6 +48,7 @@ public class ImageSelectorFragment extends Fragment {
     private static final int LOADER_ALL = 0;
     private static final int LOADER_CATEGORY = 1;
     private static final int REQUEST_CAMERA = 100;
+    private static final int REQUEST_CAMERA_7 = 1007;
 
     private ArrayList<String> resultList = new ArrayList<String>();
     private List<Folder> folderList = new ArrayList<Folder>();
@@ -62,8 +71,6 @@ public class ImageSelectorFragment extends Fragment {
     private int gridWidth, gridHeight;
 
     private boolean hasFolderGened = false;
-
-    private File tempFile;
 
     private Context context;
 
@@ -306,9 +313,8 @@ public class ImageSelectorFragment extends Fragment {
     private void showCameraAction() {
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (cameraIntent.resolveActivity(getActivity().getPackageManager()) != null) {
-            tempFile = FileUtils.createTmpFile(getActivity(), imageConfig.getFilePath());
-            cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(tempFile));
-            startActivityForResult(cameraIntent, REQUEST_CAMERA);
+            String tempFile = FileUtils.createTmpFile(getActivity(), imageConfig.getFilePath()) + System.currentTimeMillis() + ".png";
+            openCamera(tempFile);
         } else {
             Toast.makeText(context, R.string.msg_no_camera, Toast.LENGTH_SHORT).show();
         }
@@ -342,23 +348,104 @@ public class ImageSelectorFragment extends Fragment {
         }
     }
 
+    //调系统相机
+    private Uri mCameraTempUri  = null;
+    private void openCamera(String mPicUri){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            takePhotoBiggerThan7(new File(mPicUri).getAbsolutePath());
+        } else {
+            // 指定拍照意图
+            Intent openCameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            // 加载路径图片路径
+            mCameraTempUri = Uri.fromFile(new File(mPicUri));
+            // 指定存储路径，这样就可以保存原图了
+            openCameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, mCameraTempUri);
+            startActivityForResult(openCameraIntent, REQUEST_CAMERA);
+        }
+    }
+
+    private Uri mCameraTempUri7 = null;
+    private void takePhotoBiggerThan7(String absolutePath) {
+        try {
+            ContentValues values = new ContentValues(1);
+            values.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+            values.put(MediaStore.Images.Media.DATA, absolutePath);
+            mCameraTempUri7 = requireActivity().getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            if (mCameraTempUri7 != null) {
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, mCameraTempUri7);
+                intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1);
+            }
+            startActivityForResult(intent, REQUEST_CAMERA_7);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CAMERA) {
-            if (resultCode == Activity.RESULT_OK) {
-                if (tempFile != null) {
-                    if (callback != null) {
-                        callback.onCameraShot(tempFile);
-                    }
-                }
-            } else {
-                if (tempFile != null && tempFile.exists()) {
-                    tempFile.delete();
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CAMERA_7 && mCameraTempUri7 != null) {
+            //data不为null说明没拍照直接返回了
+            if (data == null){
+                if (callback != null) {
+                    callback.onCameraShot(getFileFromUri(requireContext(),mCameraTempUri7));
                 }
             }
         }
-        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CAMERA && mCameraTempUri != null){
+            if (data == null){
+                if (callback != null) {
+                    callback.onCameraShot(getFileFromUri(requireContext(),mCameraTempUri));
+                }
+            }
+        }
     }
+
+
+    public File getFileFromUri(Context context, Uri uri) {
+        File file = null;
+        if (uri.getScheme().equals("content")) {
+            String[] projection = {MediaStore.Images.Media.DATA};
+            Cursor cursor = context.getContentResolver().query(uri, projection, null, null, null);
+            if (cursor != null) {
+                int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                if (cursor.moveToFirst()) {
+                    String filePath = cursor.getString(columnIndex);
+                    file = new File(filePath);
+                }
+                cursor.close();
+            }
+        } else if (uri.getScheme().equals("file")) {
+            file = new File(uri.getPath());
+        } else {
+            try {
+                file = saveUriToFile(context, uri);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return file;
+    }
+
+    public File saveUriToFile(Context context, Uri uri) throws IOException {
+        InputStream inputStream = context.getContentResolver().openInputStream(uri);
+        File tempFile = File.createTempFile("temp_", ".tmp", context.getCacheDir());
+        OutputStream outputStream = new FileOutputStream(tempFile);
+
+        byte[] buffer = new byte[1024];
+        int length;
+        while ((length = inputStream.read(buffer)) > 0) {
+            outputStream.write(buffer, 0, length);
+        }
+        inputStream.close();
+        outputStream.close();
+
+        return tempFile;
+    }
+
+
 
     private LoaderManager.LoaderCallbacks<Cursor> mLoaderCallback = new LoaderManager.LoaderCallbacks<Cursor>() {
 
