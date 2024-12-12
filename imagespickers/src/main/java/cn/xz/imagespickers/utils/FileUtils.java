@@ -25,7 +25,7 @@ public class FileUtils {
 
         if (externalStorageState.equals(Environment.MEDIA_MOUNTED)) {
             if (!dir.exists()) {
-                dir.mkdirs();
+                dir.getParentFile().mkdirs();
             }
             return new File(dir, timeStamp + ".jpg");
         } else {
