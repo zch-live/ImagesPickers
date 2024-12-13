@@ -55,8 +55,7 @@ public class Utils {
     }
 
     public static String getImageName() {
-        String PATTERN = "yyyyMMddHHmmss";
-        return new SimpleDateFormat(PATTERN, Locale.CHINA).format(new Date()) + ".jpg";
+        return System.currentTimeMillis() + ".png";
     }
 
 

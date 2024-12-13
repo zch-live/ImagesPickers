@@ -1,6 +1,7 @@
 package cn.xz.imageselector2;
 
 import android.content.Context;
+import android.util.Log;
 import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
@@ -13,6 +14,7 @@ public class GlideLoader implements ImageLoader {
 
 	@Override
     public void displayImage(Context context, String path, ImageView imageView) {
+        Log.e("图片地址", "displayImage: " + path);
         Glide.with(context)
                 .load(path)
                 .centerCrop()

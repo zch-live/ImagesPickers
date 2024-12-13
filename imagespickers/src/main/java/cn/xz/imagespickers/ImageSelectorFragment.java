@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -313,7 +314,7 @@ public class ImageSelectorFragment extends Fragment {
     private void showCameraAction() {
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (cameraIntent.resolveActivity(getActivity().getPackageManager()) != null) {
-            String tempFile = FileUtils.createTmpFile(getActivity(), imageConfig.getFilePath()) + System.currentTimeMillis() + ".png";
+            String tempFile = FileUtils.createTmpFile(getActivity(), imageConfig.getFilePath());
             openCamera(tempFile);
         } else {
             Toast.makeText(context, R.string.msg_no_camera, Toast.LENGTH_SHORT).show();

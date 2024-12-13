@@ -10,19 +10,23 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 
+import java.io.File;
 import java.util.List;
 
 import cn.xz.imagespickers.ImageConfig;
 import cn.xz.imagespickers.ImageSelector;
 import cn.xz.imagespickers.ImageSelectorActivity;
+import cn.xz.imagespickers.utils.FileUtils;
 
 public class MainActivity extends AppCompatActivity {
 
     ImageView ivPic;
+    String mUrl;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +51,12 @@ public class MainActivity extends AppCompatActivity {
                         //设置显示容器
                         .build();
                 ImageSelector.open(MainActivity.this, imageConfig);
+            }
+        });
+        findViewById(R.id.tv_del).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                FileUtils.deleteFile(MainActivity.this,mUrl);
             }
         });
 
@@ -76,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
                 ivPic.post(new Runnable() {
                     @Override
                     public void run() {
+                        mUrl = pathList.get(0);
                         Log.e("返回链接", "run: " + pathList.get(0) );
                         ivPic.setImageBitmap(BitmapFactory.decodeFile(pathList.get(0)));
                     }

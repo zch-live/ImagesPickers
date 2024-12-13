@@ -2,6 +2,8 @@ package cn.xz.imagespickers.utils;
 
 import android.content.Context;
 import android.os.Environment;
+import android.provider.MediaStore;
+import android.util.Log;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,13 +13,7 @@ import java.util.Locale;
 
 public class FileUtils {
 
-
-    private final static String PATTERN = "yyyyMMddHHmmss";
-
-
-    public static String createTmpFile(Context context, String filePath) {
-        String timeStamp = new SimpleDateFormat(PATTERN, Locale.CHINA).format(new Date());
-
+    public static String createTmpFile(Context context, String fileName) {
         String baseFolder = Environment.getExternalStorageDirectory() + "/record/";
         File f = new File(baseFolder);
         if (!f.exists()) {
@@ -26,12 +22,10 @@ public class FileUtils {
                 baseFolder = context.getExternalFilesDir(null).getAbsolutePath() + "/";
             }
         }
-        return baseFolder;
+        return baseFolder  +  System.currentTimeMillis() + ".png";
     }
 
     public static File createTmpFile1(Context context, String filePath) {
-
-        String timeStamp = new SimpleDateFormat(PATTERN, Locale.CHINA).format(new Date());
 
         String externalStorageState = Environment.getExternalStorageState();
 
@@ -41,10 +35,10 @@ public class FileUtils {
             if (!dir.exists()) {
                 dir.getParentFile().mkdirs();
             }
-            return new File(dir, timeStamp + ".jpg");
+            return new File(dir, System.currentTimeMillis() + ".jpg");
         } else {
             File cacheDir = context.getCacheDir();
-            return new File(cacheDir, timeStamp + ".jpg");
+            return new File(cacheDir, System.currentTimeMillis() + ".jpg");
         }
 
     }
@@ -71,6 +65,14 @@ public class FileUtils {
             }
 
         }
+    }
+
+    public static void deleteFile(Context context,String filePath){
+        File file = new File(filePath);
+        //删除系统缩略图
+        context.getContentResolver().delete(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, MediaStore.Images.Media.DATA + "=?", new String[]{filePath});
+        //删除手机中图片
+        file.delete();
     }
 
 

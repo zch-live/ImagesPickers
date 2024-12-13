@@ -71,7 +71,7 @@ public class ImageConfig {
         this.isPreview = builder.isPreview;
         this.containerAdapter = builder.containerAdapter;
 
-        FileUtils.createFile(this.filePath);
+        //FileUtils.createFile(this.filePath);
     }
 
     public static class Builder implements Serializable {
@@ -88,7 +88,7 @@ public class ImageConfig {
 
         private ImageLoader imageLoader;
 
-        private String filePath = "/temp/pictures";
+        private String filePath = "";
 
         private int titleBgColor = 0XFF000000;
         private int titleTextColor = 0XFFFFFFFF;
